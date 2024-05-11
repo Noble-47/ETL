@@ -1,0 +1,51 @@
+{
+    "version" : 1,
+    "disable_existing_loggers" : true,
+    "formatters" : {
+            "simple" : {
+                "format" : "%(asctime)s - %(name)s [%(levelname)s]: %(message)s",
+                "datefmt" : "%Y-%m-%d %H:%M:%s %p"
+                },
+            "json" : {
+                    "()" : "utils.JsonFormatter",
+                    "fmt_keys" : {
+                        "level" : "levelname",
+                        "message" : "message",
+                        "timestamp" : "timestamp",
+                        "logger" : "name",
+                        "module" : "module", 
+                        "function" : "funcName",
+                        "line" : "lineno",
+                        "thread_name" : "threadName"
+                    }
+                }
+        },
+    "handlers" : {
+        "console" : {
+                "class" : "logging.StreamHandler",
+                "formatter" : "simple",
+                "level" : "DEBUG"
+            },
+
+        "file" : {
+                "class" : "logging.FileHandler",
+                "filename" : "error.log",
+                "level" : "WARNING",
+                "formatter" : "json"
+            },
+	"queue_handler" : {
+		"class" : "logging.handlers.QueueHandler",
+		"handlers" : [
+			"console",
+			"file"
+		],
+		"respect_handler_level" : true
+	}
+        },
+    "loggers" : {
+            "ETL" : {
+                    "level" : "DEBUG",
+                    "handlers" : ["queue_handler"]
+                }
+        }
+}
