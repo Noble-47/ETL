@@ -1,9 +1,10 @@
-#from collections import namedtuple
+# from collections import namedtuple
 import aiofiles
+import pathlib
 import logging
 import asyncio
 import aiohttp
-
+import os
 
 class Link:
 
@@ -41,7 +42,7 @@ class BaseExtractorClass:
         self.directory = directory
 
     async def download_file(self, session, link):
-       # Download = namedtuple("Download", "content name")
+        # Download = namedtuple("Download", "content name")
         encoding = link.encoding
         headers = link.headers
         async with session.get(link.url, headers=headers) as resp:
@@ -98,10 +99,18 @@ class BaseExtractorClass:
                 self.logger.debug(
                     f"Missing Directory: No directory was specified, using data/{self.name}"
                 )
-                self.directory = f"data/"
+                self.directory = pathlib.Path("data")
 
             # check if directory exists
-            # if not debug
+            if not self.directory.is_dir():
+                self.directory.mkdir()
+                self.logger.info(f"Created Directory: {self.directory}")
+
             # check if program have write permission
-            # if not error
+            if not os.access(self.directory, mode=os.W_OK):
+                self.logger.critical(
+                    f"Permission Error: Do not have permission to write to {self.directory}"
+                )
+                raise PermissionError(f"Cannot read directory: {self.directory}")
+
             asyncio.run(self.write(self.directory))

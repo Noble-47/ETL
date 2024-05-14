@@ -54,6 +54,7 @@ class GTISpider(BaseExtractorClass):
                 headers=HEADERS,
             )
 
-
-gti = GTISpider(UPLOAD_YEAR, START_YEAR, END_YEAR, "data")
+import pathlib
+data = pathlib.Path("data")
+gti = GTISpider(UPLOAD_YEAR, START_YEAR, END_YEAR, data)
 # gti.run()
