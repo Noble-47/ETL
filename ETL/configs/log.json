@@ -21,26 +21,29 @@
                 }
         },
     "handlers" : {
-        "console" : {
-                "class" : "logging.StreamHandler",
-                "formatter" : "simple",
-                "level" : "DEBUG"
+        "info" : {
+                "class" : "logging.FileHandler",
+                "formatter" : "json",
+                "level" : "DEBUG",
+		"filename" : "logs/info.log"
             },
 
-        "file" : {
+        "error" : {
                 "class" : "logging.FileHandler",
-                "filename" : "error.log",
+                "filename" : "logs/error.log",
                 "level" : "WARNING",
                 "formatter" : "json"
             },
+
 	"queue_handler" : {
 		"class" : "logging.handlers.QueueHandler",
 		"handlers" : [
-			"console",
-			"file"
+			"info",
+			"error"
 		],
 		"respect_handler_level" : true
 	}
+
         },
     "loggers" : {
             "ETL" : {

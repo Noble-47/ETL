@@ -1,4 +1,4 @@
-from extractors.base import BaseExtractorClass
+from extractors.base import BaseExtractor
 from extractors.base import Link
 
 ROOT_URL = f"https://www.visionofhumanity.org/wp-content/uploads"
@@ -26,7 +26,7 @@ HEADERS = {
 }
 
 
-class GTISpider(BaseExtractorClass):
+class GTISpider(BaseExtractor):
 
     name = "vision_of_humanity"
 
@@ -46,7 +46,7 @@ class GTISpider(BaseExtractorClass):
     def base_url(self):
         return self._base_url
 
-    def make_requests(self):
+    def get_links(self):
         for year in range(self.start, self.end + 1):
             yield Link(
                 url=self.base_url + f"GTI_{year}_{self.upload[-2:]}.csv",
@@ -54,7 +54,11 @@ class GTISpider(BaseExtractorClass):
                 headers=HEADERS,
             )
 
+
+    def parse(self, content):
+        return content
+
 import pathlib
 data = pathlib.Path("data")
-gti = GTISpider(UPLOAD_YEAR, START_YEAR, END_YEAR, data)
+gti = GTISpider(upload=UPLOAD_YEAR, start=START_YEAR, end=END_YEAR, directory=data)
 # gti.run()

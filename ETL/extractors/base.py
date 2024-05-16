@@ -1,22 +1,24 @@
-# from collections import namedtuple
 import aiofiles
 import pathlib
 import logging
 import asyncio
 import aiohttp
+import abc
 import os
 
 class Link:
 
-    def __init__(self, url, name, headers, encoding="utf-8"):
+    def __init__(self, url, name, headers, is_json_content=False, encoding="utf-8"):
         self.url = url
         self.name = name
         self._headers = headers
         self.encoding = encoding
+        self.is_json_content = is_json_content
 
     @property
     def headers(self):
         return self._headers  # or default request headers
+
 
     def __repr__(self):
         return f"Link(name = {self.name}, url = {self.url})"
@@ -27,48 +29,59 @@ class Download:
     def __init__(self, name, content):
         self.name = name
         self.content = content
-
-    def __repr__(self):
+    
+    def __repr__(self, write=True):
         return f"Download(name = {self.name})"
 
 
-class BaseExtractorClass:
+class BaseExtractor(abc.ABC):
 
     name = ""
+    domain = ""
 
     def __init__(self, directory=None):
         self.name = self.__class__.name or self.__class__.__name__
         self.logger = logging.getLogger(f"ETL.Extractor.{self.name}")
         self.directory = directory
+    
+    @abc.abstractmethod
+    def get_links(self):
+        pass
 
-    async def download_file(self, session, link):
-        # Download = namedtuple("Download", "content name")
+    @abc.abstractmethod
+    def parse(self, content):
+        pass
+
+    async def handle_request(self, session, link):
         encoding = link.encoding
         headers = link.headers
+        self.logger.info(f"Sending Request: {link.url}")
         async with session.get(link.url, headers=headers) as resp:
-            self.logger.info(f"Initializing Download : {link.name} from {link.url}")
             if not resp.ok:
                 self.logger.error(
-                    f"Download Error -  Received {resp.status} : {link.name} from {link.url}"
+                    f"Request Error -  Received {resp.status} : {link.url}"
                 )
                 return None
 
-            content = await resp.content.read()
-            self.logger.info(f"Download Complete - {link.name} from {link.url}")
+            self.logger.info(f"Response Received ({resp.status}) - {link.name} from {link.url}")
+            if link.is_json_content:
+                content = await resp.content.json()
+            else:
+                content = await resp.content.read()
             self.logger.info(f"Decoding Download - {link.name}, format : {encoding}")
-            content = content.decode(encoding)
+            parsed_content = self.parse(content.decode(encoding))
             self.logger.info(f"Decoding Complete - {link.name}, format : {encoding}")
-            return Download(content=content, name=link.name)
+            return Download(content=parsed_content, name=link.name)
 
-    async def initialize_download(self):
+    async def start_request(self):
         download_tasks = set()
         async with aiohttp.ClientSession() as session:
             async with asyncio.TaskGroup() as tg:
-                for link in self.make_requests():
+                for link in self.get_links():
                     self.logger.info(
-                        f"Schedulling Download : {link.name} from {link.url}"
+                        f"Schedulling Request : {link.name} from {link.url}"
                     )
-                    task = tg.create_task(self.download_file(session, link))
+                    task = tg.create_task(self.handle_request(session, link))
                     download_tasks.add(task)
         return download_tasks
 
@@ -90,7 +103,7 @@ class BaseExtractorClass:
     def run(self, write=True):
 
         self.downloads = [
-            task.result() for task in asyncio.run(self.initialize_download())
+            task.result() for task in asyncio.run(self.start_request())
         ]
 
         if write:
@@ -114,3 +127,8 @@ class BaseExtractorClass:
                 raise PermissionError(f"Cannot read directory: {self.directory}")
 
             asyncio.run(self.write(self.directory))
+ 
+    def __repr__(self):
+        return f"{self.__class__.__name__}<{self.directory or self.domain}>"
+
+    
