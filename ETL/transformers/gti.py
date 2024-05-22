@@ -13,7 +13,7 @@ class GTITransformer(BaseTransformClass):
 
     filter_prefix = "index"
     countries_to_replace = {
-        "Egypt": "Egypt, Arab Rep.",
+        "Egypt, Arab Rep.": "Egypt",
         "Democratic Republic of the Congo": "Congo, Dem. Rep.",
         "Republic of the Congo": "Congo, Rep.",
         "Cote d' Ivoire": "Cote d'Ivoire",
@@ -32,9 +32,9 @@ class GTITransformer(BaseTransformClass):
 
     def merge(self, transformed_data):
         """Merges the transformed dataset by concatenation"""
-        gti_data = pd.concat(transformed_data)
-        save_dir = self.data_dir / "transformed"
-        self.write(name="gti", data=gti_data, save_dir=save_dir)
+        if len(transformed_data) > 1:
+            gti_data = pd.concat(transformed_data)
+            self.write(name="gti", data=gti_data)
 
     def rename_countries(self, data):
         """
@@ -67,10 +67,9 @@ class GTITransformer(BaseTransformClass):
         data = self.filter_dataset(data)
         data = self.rename_columns(data)
         data = self.rename_countries(data)
-        save_dir = self.data_dir / "transformed"
-        self.write(name, data, save_dir)
+        self.write(name, data)
 
-        return {"name": name, "data": data}
+        return data
 
 
 # gti_transformer = GTITransformer('../../data/gti')

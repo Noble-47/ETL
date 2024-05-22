@@ -6,6 +6,7 @@ import aiohttp
 import abc
 import os
 
+
 class Link:
 
     def __init__(self, url, name, headers, is_json_content=False, encoding="utf-8"):
@@ -19,7 +20,6 @@ class Link:
     def headers(self):
         return self._headers  # or default request headers
 
-
     def __repr__(self):
         return f"Link(name = {self.name}, url = {self.url})"
 
@@ -29,8 +29,8 @@ class Download:
     def __init__(self, name, content):
         self.name = name
         self.content = content
-    
-    def __repr__(self, write=True):
+
+    def __repr__(self):
         return f"Download(name = {self.name})"
 
 
@@ -42,14 +42,33 @@ class BaseExtractor(abc.ABC):
     def __init__(self, directory=None):
         self.name = self.__class__.name or self.__class__.__name__
         self.logger = logging.getLogger(f"ETL.Extractor.{self.name}")
+
+        if not directory:
+            self.logger.debug(
+                f"Missing Directory: No directory was specified, using data/{self.name}"
+            )
+            directory = pathlib.Path(f"data/{self.name}")
+
+        else:
+            directory = pathlib.Path(directory)
+
+        # check if directory exists
+        if not directory.is_dir():
+            directory.mkdir()
+            self.logger.info(f"Created Directory: {directory}")
+
         self.directory = directory
-    
-    @abc.abstractmethod
-    def get_links(self):
-        pass
+
+        # check if program have write permission
+        if not os.access(directory, mode=os.W_OK):
+            self.logger.critical(
+                f"Permission Error: Do not have permission to write to {self.directory}"
+            )
+            # Raise permission error
+            raise Exception
 
     @abc.abstractmethod
-    def parse(self, content):
+    def get_links(self):
         pass
 
     async def handle_request(self, session, link):
@@ -63,15 +82,18 @@ class BaseExtractor(abc.ABC):
                 )
                 return None
 
-            self.logger.info(f"Response Received ({resp.status}) - {link.name} from {link.url}")
+            self.logger.info(
+                f"Response Received ({resp.status}) - {link.name} from {link.url}"
+            )
             if link.is_json_content:
                 content = await resp.content.json()
             else:
                 content = await resp.content.read()
             self.logger.info(f"Decoding Download - {link.name}, format : {encoding}")
-            parsed_content = self.parse(content.decode(encoding))
+            if link.encoding:
+                content = content.decode(encoding)
             self.logger.info(f"Decoding Complete - {link.name}, format : {encoding}")
-            return Download(content=parsed_content, name=link.name)
+            return Download(content=content, name=link.name)
 
     async def start_request(self):
         download_tasks = set()
@@ -94,41 +116,17 @@ class BaseExtractor(abc.ABC):
                 tg.create_task(self.write_download(download))
 
     async def write_download(self, download):
-        path = f"{self.directory}/{download.name}"
+        path = self.directory / download.name
         self.logger.info(f"Initializing Write Operation : {download.name} to {path}")
         async with aiofiles.open(path, "w") as f:
             await f.write(download.content)
             self.logger.info(f"Write Operation Complete : {download.name} to {path}")
 
-    def run(self, write=True):
+    def run(self):
 
-        self.downloads = [
-            task.result() for task in asyncio.run(self.start_request())
-        ]
+        self.downloads = [task.result() for task in asyncio.run(self.start_request())]
 
-        if write:
-            # check if directory is given
-            if not self.directory:
-                self.logger.debug(
-                    f"Missing Directory: No directory was specified, using data/{self.name}"
-                )
-                self.directory = pathlib.Path("data")
+        asyncio.run(self.write(self.directory))
 
-            # check if directory exists
-            if not self.directory.is_dir():
-                self.directory.mkdir()
-                self.logger.info(f"Created Directory: {self.directory}")
-
-            # check if program have write permission
-            if not os.access(self.directory, mode=os.W_OK):
-                self.logger.critical(
-                    f"Permission Error: Do not have permission to write to {self.directory}"
-                )
-                raise PermissionError(f"Cannot read directory: {self.directory}")
-
-            asyncio.run(self.write(self.directory))
- 
     def __repr__(self):
         return f"{self.__class__.__name__}<{self.directory or self.domain}>"
-
-    

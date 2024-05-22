@@ -5,25 +5,47 @@ its read method and logger attribute
 """
 
 from parallelbar import progress_imap
+from pathlib import Path
 import multiprocessing
 import pandas as pd
 import logging
-import os
+import abc
 
 logger = logging.getLogger("ETL.Transform")
 
 
-class BaseTransformClass:
+class BaseTransformClass(abc.ABC):
     """Base Class for transformers"""
 
     name = ""
 
-    def __init__(self, data_dir=None, save_file_type="excel"):
+    def __init__(self, data_dir=None, save_dir=None, save_file_type="excel"):
         self.name = self.__class__.name or self.__class__.__name__
         self.logger = logging.getLogger(f"ETL.Transform.{self.name}")
         self.extension_reader = {".xlsx": pd.read_excel, ".csv": pd.read_csv}
-        self.data_dir = data_dir
         self._save_file_type = save_file_type
+
+        if data_dir is None:
+            data_dir = Path("data") / self.name
+
+        if isinstance(data_dir, Path):
+            self.data_dir = data_dir
+
+        if isinstance(data_dir, str):
+            self.data_dir = Path(data_dir)
+
+        if save_dir is None:
+            self.save_dir = self.data_dir / "transformed"
+
+        else:
+            if isinstance(save_dir, str):
+                self.save_dir = Path(save_dir)
+
+            if isinstance(save_dir, Path):
+                self.save_dir = save_dir
+
+        if not self.save_dir.is_dir():
+            self.save_dir.mkdir()
 
     def get_extension_and_writer(self):
         return {
@@ -37,14 +59,13 @@ class BaseTransformClass:
         reader = self.extension_reader.get(ext)
         return reader(fn)
 
-    def write(self, name, data, save_dir):
+    def write(self, name, data):
         """Writes data to the folder specified by `self.data_dir`"""
-        if not save_dir.is_dir():
-            os.mkdir(save_dir)
         ext, writer = self.get_extension_and_writer()
-        filename = save_dir / f"{name}.{ext}"
+        filename = self.save_dir / f"{name}.{ext}"
         writer(data, filename, index=False)
 
+    @abc.abstractmethod
     def transform(self, data_dict):
         """
         Serves as the entry point to the transformer object.
@@ -63,7 +84,7 @@ class BaseTransformClass:
         the read in data content as the value
         """
         try:
-            files = os.listdir(self.data_dir)
+            files = [f for f in self.data_dir.iterdir() if f.is_file()]
         except Exception as e:
             self.logger.exception(
                 "Encountered An Error trying to read %s ", self.data_dir
@@ -73,9 +94,9 @@ class BaseTransformClass:
             self.logger.info("%d files found in %s folder", len(files), self.data_dir)
         datasets = []
         for fn in files:
-            name = fn.lower().split(".")[0]
+            name = fn.name.lower().split(".")[0]
             self.logger.info(f"Transformation Initialization: Submitting {fn}")
-            datasets.append({"name": name, "data": self.read(self.data_dir / fn)})
+            datasets.append({"name": name, "data": self.read(fn)})
         return datasets
 
     def merge(transformed_data):
