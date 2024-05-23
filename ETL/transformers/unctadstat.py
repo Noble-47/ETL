@@ -1,11 +1,14 @@
 from transformers.base import BaseTransformClass
 
 from functools import reduce
-
+from pathlib import Path
 
 class UnctadStatTransformer(BaseTransformClass):
 
     name = "unctadstat"
+    parent = Path("data/unctstad")
+    default_data_dir = parent
+    default_save_dir = parent / "transformed"
 
     def rename_columns(self, data):
         columns = [col.lower().replace(" ", "_") for col in data.columns]

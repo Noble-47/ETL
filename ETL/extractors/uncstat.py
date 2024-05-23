@@ -36,11 +36,12 @@ HEADERS = {
 class UnctadStatExtractor(BaseExtractor):
     name = "unctadstat"
     domain = "https://unctadstat.unctad.org"
+    default_data_dir = "data/unctadstat"
 
-    def __init__(self, variables, directory=None):
+    def __init__(self, variables, data_dir=None):
         self.variables = variables
-        super().__init__(directory)
-        temp_dir = Path(f"{self.directory}/uncstat_temp/")
+        super().__init__(data_dir)
+        temp_dir = Path(f"{self.data_dir}/uncstat_temp/")
         if not temp_dir.is_dir():
             temp_dir.mkdir()
         self.temp_dir = temp_dir
@@ -65,7 +66,7 @@ class UnctadStatExtractor(BaseExtractor):
         return content
 
     async def write_download(self, download):
-        path = self.directory
+        path = self.data_dir
         self.logger.info("Initializing Write Operation : {download.name} to {path}")
         temp_path = self.temp_dir / download.name
 

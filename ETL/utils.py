@@ -44,6 +44,21 @@ class JsonFormatter(logging.Formatter):
 ############################ Mixin Class #######################################
 class IOMixin:
 
+    def setup_data_dir(self, data_dir):
+        data_dir = data_dir or self.default_data_dir
+        self.data_dir = data_dir if instance(data_dir, Path) else Path(data_dir)
+
+
+    def setup_save_dir(self, save_dir):
+        save_dir = save_dir or self.default_save_dir
+        self.save_dir = save_dir if isinstance(save_dir, Path) else Path(save_dir)
+        if not self.save_dir.is_dir():
+            self.save_dir.mkdir()
+
+    def setup_directories(data_dir, save_dir):
+        self.setup_data_dir(data_dir)
+        self.setup_save_dir(save_dir)
+
     def get_extension_and_writer(self):
         return {
                 "excel" : ("Xlsx", pd.DataFrame.to_excel),

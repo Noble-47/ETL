@@ -24,17 +24,18 @@ HEADERS = {
 }
 
 
-class GTISpider(BaseExtractor):
+class GTIExtractor(BaseExtractor):
 
     name = "vision_of_humanity"
+    default_data_dir = "data/gti"
 
-    def __init__(self, upload, start, end, directory):
+    def __init__(self, upload, start, end, data_dir):
         self.upload = upload
         self.start = start
         self.end = end
         self._root_url = ROOT_URL
         self._base_url = f"{self.root_url}/{self.upload}/02/"
-        super().__init__(directory)
+        super().__init__(data_dir)
 
     @property
     def root_url(self):
@@ -59,5 +60,5 @@ class GTISpider(BaseExtractor):
 import pathlib
 
 data = pathlib.Path("data")
-gti = GTISpider(upload=UPLOAD_YEAR, start=START_YEAR, end=END_YEAR, directory=data)
+gti = GTISpider(upload=UPLOAD_YEAR, start=START_YEAR, end=END_YEAR, data_dir=data)
 # gti.run()

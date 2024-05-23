@@ -3,6 +3,7 @@ Contains the base class for all tranformers class to be defined
 All tranformers are to inherit from BaseTransformClass to access
 its read method and logger attribute
 """
+
 from utils import IOMixin
 
 from parallelbar import progress_imap
@@ -19,24 +20,15 @@ class BaseTransformClass(abc.ABC, IOMixin):
     """Base Class for transformers"""
 
     name = ""
+    default_data_dir = ""
+    default_save_dir = ""
 
     def __init__(self, data_dir=None, save_dir=None, save_file_type="excel"):
         self.name = self.__class__.name or self.__class__.__name__
         self.logger = logging.getLogger(f"ETL.Transform.{self.name}")
         self.extension_reader = {".xlsx": pd.read_excel, ".csv": pd.read_csv}
         self._save_file_type = save_file_type
-
-        if data_dir is None:
-            data_dir = Path("data") / self.name
-   
-        if save_dir is None:
-            save_dir = self.data_dir / "transformed"
-
-
-        self.data_dir = data_dir if instance(data_dir, Path) else Path(data_dir)
-        self.save_dir = save_dir if isinstance(save_dir, Path) else Path(save_dir)
-        if not self.save_dir.is_dir():
-            self.save_dir.mkdir()
+        self.setup_directories(data_dir, save_dir)
 
     @abc.abstractmethod
     def transform(self, data_dict):

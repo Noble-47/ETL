@@ -38,31 +38,32 @@ class BaseExtractor(abc.ABC):
 
     name = ""
     domain = ""
+    default_data_dir = ""
 
-    def __init__(self, directory=None):
+    def __init__(self, data_dir=None):
         self.name = self.__class__.name or self.__class__.__name__
         self.logger = logging.getLogger(f"ETL.Extractor.{self.name}")
 
-        if not directory:
+        if not data_dir:
             self.logger.debug(
-                f"Missing Directory: No directory was specified, using data/{self.name}"
+                f"Missing Directory: No data_dir was specified, using data/{self.name}"
             )
-            directory = pathlib.Path(f"data/{self.name}")
+            data_dir = self.default_data_dir
 
         else:
-            directory = pathlib.Path(directory)
+            data_dir = pathlib.Path(data_dir)
 
-        # check if directory exists
-        if not directory.is_dir():
-            directory.mkdir()
-            self.logger.info(f"Created Directory: {directory}")
+        # check if data_dir exists
+        if not data_dir.is_dir():
+            data_dir.mkdir()
+            self.logger.info(f"Created Directory: {data_dir}")
 
-        self.directory = directory
+        self.data_dir = data_dir
 
         # check if program have write permission
-        if not os.access(directory, mode=os.W_OK):
+        if not os.access(data_dir, mode=os.W_OK):
             self.logger.critical(
-                f"Permission Error: Do not have permission to write to {self.directory}"
+                f"Permission Error: Do not have permission to write to {self.data_dir}"
             )
             # Raise permission error
             raise Exception
@@ -107,26 +108,26 @@ class BaseExtractor(abc.ABC):
                     download_tasks.add(task)
         return download_tasks
 
-    async def write(self, directory):
+    async def write(self, data_dir):
         async with asyncio.TaskGroup() as tg:
             for download in self.downloads:
                 self.logger.info(
-                    f"Schedulling Write Operation: {download.name} to folder {self.directory}"
+                    f"Schedulling Write Operation: {download.name} to folder {self.data_dir}"
                 )
                 tg.create_task(self.write_download(download))
 
     async def write_download(self, download):
-        path = self.directory / download.name
+        path = self.data_dir / download.name
         self.logger.info(f"Initializing Write Operation : {download.name} to {path}")
         async with aiofiles.open(path, "w") as f:
             await f.write(download.content)
             self.logger.info(f"Write Operation Complete : {download.name} to {path}")
 
-    def run(self):
+    def extract(self):
 
         self.downloads = [task.result() for task in asyncio.run(self.start_request())]
 
-        asyncio.run(self.write(self.directory))
+        asyncio.run(self.write(self.data_dir))
 
     def __repr__(self):
-        return f"{self.__class__.__name__}<{self.directory or self.domain}>"
+        return f"{self.__class__.__name__}<{self.data_dir or self.domain}>"
