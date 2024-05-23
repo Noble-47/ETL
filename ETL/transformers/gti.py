@@ -30,12 +30,6 @@ class GTITransformer(BaseTransformClass):
         f"{filter_prefix}_prop": "prop",
     }
 
-#    def merge(self, transformed_data):
-#        """Merges the transformed dataset by concatenation"""
-#        if len(transformed_data) > 1:
-#            gti_data = pd.concat(transformed_data)
-#            self.write(name="gti", data=gti_data)
-#
     def rename_countries(self, data):
         """
         Renames Countries spelt differently in order to have
