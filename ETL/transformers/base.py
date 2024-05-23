@@ -3,6 +3,7 @@ Contains the base class for all tranformers class to be defined
 All tranformers are to inherit from BaseTransformClass to access
 its read method and logger attribute
 """
+from utils import IOMixin
 
 from parallelbar import progress_imap
 from pathlib import Path
@@ -14,7 +15,7 @@ import abc
 logger = logging.getLogger("ETL.Transform")
 
 
-class BaseTransformClass(abc.ABC):
+class BaseTransformClass(abc.ABC, IOMixin):
     """Base Class for transformers"""
 
     name = ""
@@ -27,43 +28,15 @@ class BaseTransformClass(abc.ABC):
 
         if data_dir is None:
             data_dir = Path("data") / self.name
-
-        if isinstance(data_dir, Path):
-            self.data_dir = data_dir
-
-        if isinstance(data_dir, str):
-            self.data_dir = Path(data_dir)
-
+   
         if save_dir is None:
-            self.save_dir = self.data_dir / "transformed"
+            save_dir = self.data_dir / "transformed"
 
-        else:
-            if isinstance(save_dir, str):
-                self.save_dir = Path(save_dir)
 
-            if isinstance(save_dir, Path):
-                self.save_dir = save_dir
-
+        self.data_dir = data_dir if instance(data_dir, Path) else Path(data_dir)
+        self.save_dir = save_dir if isinstance(save_dir, Path) else Path(save_dir)
         if not self.save_dir.is_dir():
             self.save_dir.mkdir()
-
-    def get_extension_and_writer(self):
-        return {
-            "excel": ("xlsx", pd.DataFrame.to_excel),
-            "csv": ("csv", pd.DataFrame.to_csv),
-        }.get(self._save_file_type)
-
-    def read(self, fn):
-        """Reads in data file using the appriopriate reader for the given file extension"""
-        ext = fn.suffix
-        reader = self.extension_reader.get(ext)
-        return reader(fn)
-
-    def write(self, name, data):
-        """Writes data to the folder specified by `self.data_dir`"""
-        ext, writer = self.get_extension_and_writer()
-        filename = self.save_dir / f"{name}.{ext}"
-        writer(data, filename, index=False)
 
     @abc.abstractmethod
     def transform(self, data_dict):
@@ -77,7 +50,7 @@ class BaseTransformClass(abc.ABC):
         """
         raise NotImplemented
 
-    def get_dataset(self):
+    def fetch_data(self):
         """
         Reads in the data files contain in the data directory
         returns a dictionary of filename in lower case as the key and
@@ -95,12 +68,8 @@ class BaseTransformClass(abc.ABC):
         datasets = []
         for fn in files:
             name = fn.name.lower().split(".")[0]
-            self.logger.info(f"Transformation Initialization: Submitting {fn}")
             datasets.append({"name": name, "data": self.read(fn)})
         return datasets
-
-    def merge(transformed_data):
-        raise NotImplemented
 
     def run_transformation(self, workers=None, write=True):
         """
@@ -116,7 +85,7 @@ class BaseTransformClass(abc.ABC):
         # with multiprocessing.Pool(processes=workers) as pool:
         #   transformed_data = pool.imap(self.transform, self.get_dataset())
         transformed_data = progress_imap(
-            self.transform, self.get_dataset(), n_cpu=workers
+            self.transform, self.fetch_data(), n_cpu=workers
         )
         self.logger.info("Transformation Process: Initializing Merging.")
 

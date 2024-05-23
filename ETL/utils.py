@@ -41,3 +41,36 @@ class JsonFormatter(logging.Formatter):
 
         return message
 
+############################ Mixin Class #######################################
+class IOMixin:
+
+    def get_extension_and_writer(self):
+        return {
+                "excel" : ("Xlsx", pd.DataFrame.to_excel),
+                "csv" : ("csv", pd.DataFrame.to_csv)
+            }.get(self.save_file_type)
+
+    def write(self, name, data):
+        ext, writer = self.get_extension_and_writer()
+        filename = self.save_dir / f"{name}.{ext}"
+        writer(data, filename, index=False)
+
+    def fetch(self):
+        try:
+            files = [f for f in self.data_dir.iterdir() if f.is_file()]
+        except Exception as e:
+            self.logger.exception(
+                    "Encountered an error trying to read %s", self.data_dir
+                )
+            raise e
+        else:
+            self.logger.info("%d files found in %s filder", len(files), self.data_dir.name)
+
+        datasets = [self.read(f) for f in files]
+        return datasets
+
+    def read(self, fn):
+        ext = fn.suffix
+        reader = self.extension.get(ext)
+        return reader(fn)
+

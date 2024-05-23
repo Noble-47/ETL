@@ -43,19 +43,19 @@ class UnctadStatTransformer(BaseTransformClass):
 
         return data
 
-    def merge(self, transformed_dataset):
-        if len(transformed_dataset) > 1:
-            merged_data = reduce(
-                lambda left, right: pd.merge(
-                    left, right, on=["Country Name", "year"], how="left"
-                ),
-                transformed_dataset,
-            ).sort_values(by=["Country Name", "year"])
-
-        else:
-            merged_data = transformed_dataset[0].sort_values(
-                by=["Country Name", "year"]
-            )
-
-        self.write("unctadstat_report", merged_data)
-        return merged_data
+#    def merge(self, transformed_dataset):
+#        if len(transformed_dataset) > 1:
+#            merged_data = reduce(
+#                lambda left, right: pd.merge(
+#                    left, right, on=["Country Name", "year"], how="left"
+#                ),
+#                transformed_dataset,
+#            ).sort_values(by=["Country Name", "year"])
+#
+#        else:
+#            merged_data = transformed_dataset[0].sort_values(
+#                by=["Country Name", "year"]
+#            )
+#
+#        self.write("unctadstat_report", merged_data)
+#        return merged_data
