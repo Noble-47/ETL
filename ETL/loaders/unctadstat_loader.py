@@ -19,7 +19,7 @@ class UnctadStatLoader(BaseLoader):
         if len(dataset) > 1:
             merged_data = reduce(
                 lambda left, right: pd.merge(
-                    left, right, on=["Country Name", "year"], how="left"
+                    left, right, on=["Country Name", "year"], how="outer"
                 ),
                 dataset,
             ).sort_values(by=["Country Name", "year"])
