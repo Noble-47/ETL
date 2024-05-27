@@ -1,11 +1,11 @@
 from loaders.base import BaseLoaderClass
 
 
-class GTIMergeLoader(BaseLoaderClass):
+class GTILoader(BaseLoaderClass):
 
     name = "GTI Merge Loader"
-    default_data_dir = Path("data/gti/transformed")
-    default_save_dir = default_data_dir.parent / "loaded"
+    default_data_dir = "data/gti/transformed"
+    default_save_dir = "data/loaded"
 
     def load(self):
 

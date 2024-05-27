@@ -4,7 +4,6 @@ All tranformers are to inherit from BaseTransformClass to access
 its read method and logger attribute
 """
 
-from utils import IOMixin
 
 from parallelbar import progress_imap
 from pathlib import Path
@@ -12,6 +11,10 @@ import multiprocessing
 import pandas as pd
 import logging
 import abc
+
+from utils.io import IOMixin
+from report.components import Metric
+
 
 logger = logging.getLogger("ETL.Transform")
 
@@ -26,8 +29,9 @@ class BaseTransformClass(abc.ABC, IOMixin):
     def __init__(self, data_dir=None, save_dir=None, save_file_type="excel"):
         self.name = self.__class__.name or self.__class__.__name__
         self.logger = logging.getLogger(f"ETL.Transform.{self.name}")
-        self.extension_reader = {".xlsx": pd.read_excel, ".csv": pd.read_csv}
-        self._save_file_type = save_file_type
+        #self.extension_reader = {".xlsx": pd.read_excel, ".csv": pd.read_csv}
+        #self.extension_and_writer = {"excel" : ("xlsx", pd.DataFrame.to_excel), "csv" : ("csv", pd.DataFrame.to_csv)}
+        self.save_file_type = save_file_type
         self.setup_directories(data_dir, save_dir)
 
     @abc.abstractmethod
@@ -76,14 +80,14 @@ class BaseTransformClass(abc.ABC, IOMixin):
         self.logger.info(f"Transformation Process: Using {workers} workers")
         # with multiprocessing.Pool(processes=workers) as pool:
         #   transformed_data = pool.imap(self.transform, self.get_dataset())
-        transformed_data = progress_imap(
+        #transformed_data = progress_imap(
+        #    self.transform, self.fetch_data(), n_cpu=workers
+        #)
+        progress_imap(
             self.transform, self.fetch_data(), n_cpu=workers
         )
-        self.logger.info("Transformation Process: Initializing Merging.")
 
-        self.merged_data = self.merge(transformed_data)
 
-        return self.merged_data
 
     def __str__(self):
         return f"{self.name} Transformer"

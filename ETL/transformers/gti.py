@@ -13,8 +13,8 @@ countries_to_replace = {
 
 class GTITransformer(BaseTransformClass):
     parent = Path("data/gti")
-    default_data_dir = parent
-    default_save_dir = parent / "extract"
+    default_data_dir = parent / "extracted"
+    default_save_dir = parent / "transformed"
 
     filter_prefix = "index"
     countries_to_replace = {

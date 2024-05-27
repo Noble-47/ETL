@@ -22,9 +22,10 @@
         },
     "handlers" : {
         "info" : {
-                "class" : "logging.StreamHandler",
+                "class" : "logging.FileHandler",
                 "formatter" : "json",
-                "level" : "DEBUG"
+                "level" : "DEBUG",
+		"filename" : "logs/info.log"
             },
 
         "error" : {

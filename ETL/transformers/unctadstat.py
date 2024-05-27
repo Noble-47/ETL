@@ -6,8 +6,8 @@ from pathlib import Path
 class UnctadStatTransformer(BaseTransformClass):
 
     name = "unctadstat"
-    parent = Path("data/unctstad")
-    default_data_dir = parent
+    parent = Path("data/unctadstat")
+    default_data_dir = parent / "extracted"
     default_save_dir = parent / "transformed"
 
     def rename_columns(self, data):
