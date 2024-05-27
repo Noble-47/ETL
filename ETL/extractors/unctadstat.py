@@ -36,12 +36,12 @@ HEADERS = {
 class UnctadStatExtractor(BaseExtractor):
     name = "unctadstat"
     domain = "https://unctadstat.unctad.org"
-    default_data_dir = "data/unctadstat"
+    default_save_dir = "data/unctadstat/extracted"
 
-    def __init__(self, variables, data_dir=None):
+    def __init__(self, variables, save_dir=None):
         self.variables = variables
-        super().__init__(data_dir)
-        temp_dir = Path(f"{self.data_dir}/uncstat_temp/")
+        super().__init__(save_dir)
+        temp_dir = Path(f"{self.save_dir}/uncstat_temp/")
         if not temp_dir.is_dir():
             temp_dir.mkdir()
         self.temp_dir = temp_dir
@@ -66,8 +66,8 @@ class UnctadStatExtractor(BaseExtractor):
         return content
 
     async def write_download(self, download):
-        path = self.data_dir
-        self.logger.info("Initializing Write Operation : {download.name} to {path}")
+        path = self.save_dir
+        self.logger.info(f"Initializing Write Operation : {download.name} to {path}")
         temp_path = self.temp_dir / download.name
 
         async with aiofiles.open(temp_path, "wb") as f:
@@ -77,15 +77,9 @@ class UnctadStatExtractor(BaseExtractor):
             archive.extractall(path=path)
             archive.close()
             temp_path.unlink()
-            self.logger.info("Write Operation Complete : {download.name} to {path}")
+            self.logger.info(f"Write Operation Complete : {download.name} to {path}")
 
     def run(self):
         super().run()
         self.temp_dir.rmdir()
 
-
-import pathlib
-
-data = pathlib.Path("data/unctadstat")
-
-unc_extractor = UnctadStatExtractor(variables=["US.PCI"])

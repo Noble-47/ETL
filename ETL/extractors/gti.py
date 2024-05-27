@@ -27,15 +27,21 @@ HEADERS = {
 class GTIExtractor(BaseExtractor):
 
     name = "vision_of_humanity"
-    default_data_dir = "data/gti"
+    default_save_dir = "data/gti/extracted"
 
-    def __init__(self, upload, start, end, data_dir):
-        self.upload = upload
-        self.start = start
-        self.end = end
+    def __init__(self, upload=None, start=None, end=None, save_dir=None):
+        self.upload = upload or UPLOAD_YEAR
+        self.start = start or START_YEAR
+        self.end = end or END_YEAR
         self._root_url = ROOT_URL
         self._base_url = f"{self.root_url}/{self.upload}/02/"
-        super().__init__(data_dir)
+        super().__init__(save_dir)
+
+    def setup_metric_componenet(self, metric_class):
+        super().setup_metric_componenet(metric_class)
+        self.metric.add(start_year = self.start)
+        self.metric.add(end_year = self.end)
+        self.metric.add(upload_year = self.upload)
 
     @property
     def root_url(self):
@@ -53,12 +59,3 @@ class GTIExtractor(BaseExtractor):
                 headers=HEADERS,
             )
 
-    def parse(self, content):
-        return content
-
-
-import pathlib
-
-data = pathlib.Path("data")
-gti = GTISpider(upload=UPLOAD_YEAR, start=START_YEAR, end=END_YEAR, data_dir=data)
-# gti.run()

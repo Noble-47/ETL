@@ -4,7 +4,9 @@ import logging
 import asyncio
 import aiohttp
 import abc
-import os
+
+from utils.io import IOMixin
+from report.components import Metric
 
 
 class Link:
@@ -34,39 +36,22 @@ class Download:
         return f"Download(name = {self.name})"
 
 
-class BaseExtractor(abc.ABC):
+class BaseExtractor(abc.ABC, IOMixin):
 
     name = ""
     domain = ""
-    default_data_dir = ""
+    default_save_dir = ""
 
-    def __init__(self, data_dir=None):
+    def __init__(self, save_dir=None):
         self.name = self.__class__.name or self.__class__.__name__
         self.logger = logging.getLogger(f"ETL.Extractor.{self.name}")
+        self.setup_save_dir(save_dir)
+        self.setup_metric(Metric)
 
-        if not data_dir:
-            self.logger.debug(
-                f"Missing Directory: No data_dir was specified, using data/{self.name}"
-            )
-            data_dir = self.default_data_dir
-
-        else:
-            data_dir = pathlib.Path(data_dir)
-
-        # check if data_dir exists
-        if not data_dir.is_dir():
-            data_dir.mkdir()
-            self.logger.info(f"Created Directory: {data_dir}")
-
-        self.data_dir = data_dir
-
-        # check if program have write permission
-        if not os.access(data_dir, mode=os.W_OK):
-            self.logger.critical(
-                f"Permission Error: Do not have permission to write to {self.data_dir}"
-            )
-            # Raise permission error
-            raise Exception
+    def setup_metric_componenet(self, metric_cls):
+        self.metric = metric_cls(self.name)
+        self.metric.add(source = self.domain)
+        self.metric.add(save_directory = self.savedir)
 
     @abc.abstractmethod
     def get_links(self):
@@ -108,26 +93,33 @@ class BaseExtractor(abc.ABC):
                     download_tasks.add(task)
         return download_tasks
 
-    async def write(self, data_dir):
+    async def write(self):
         async with asyncio.TaskGroup() as tg:
             for download in self.downloads:
                 self.logger.info(
-                    f"Schedulling Write Operation: {download.name} to folder {self.data_dir}"
+                    f"Schedulling Write Operation: {download.name} to folder {self.save_dir}"
                 )
                 tg.create_task(self.write_download(download))
 
     async def write_download(self, download):
-        path = self.data_dir / download.name
+        path = self.save_dir / download.name
         self.logger.info(f"Initializing Write Operation : {download.name} to {path}")
         async with aiofiles.open(path, "w") as f:
             await f.write(download.content)
             self.logger.info(f"Write Operation Complete : {download.name} to {path}")
 
     def extract(self):
-
-        self.downloads = [task.result() for task in asyncio.run(self.start_request())]
-
-        asyncio.run(self.write(self.data_dir))
+        downloads = []
+        for task in asyncio.run(self.start_request()):
+            result = task.result
+            if result:
+                downloads.append(task)
+        self.metric.add(number_of_files_downloaded = len(downloads))
+        self.downloads = downloads
+        asyncio.run(self.write())
 
     def __repr__(self):
-        return f"{self.__class__.__name__}<{self.data_dir or self.domain}>"
+        return f"{self.__class__.__name__}<{self.save_dir or self.domain}>"
+
+    def __call__(self):
+        self.extract()
