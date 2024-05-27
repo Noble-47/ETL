@@ -42,11 +42,11 @@ class BaseExtractor(abc.ABC, IOMixin):
     domain = ""
     default_save_dir = ""
 
-    def __init__(self, save_dir=None):
+    def __init__(self, save_dir=None, metric_class=Metric):
         self.name = self.__class__.name or self.__class__.__name__
         self.logger = logging.getLogger(f"ETL.Extractor.{self.name}")
         self.setup_save_dir(save_dir)
-        self.setup_metric(Metric)
+        self.setup_metric(metric_class)
 
     def setup_metric_componenet(self, metric_cls):
         self.metric = metric_cls(self.name)

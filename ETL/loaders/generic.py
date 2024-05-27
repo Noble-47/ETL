@@ -16,7 +16,9 @@ class GenericMergeLoader(BaseLoaderClass):
 
     def load(self):
         dataset = self.fetch()
-        if len(dataset) > 1:
+        len_read_files = len(dataset)
+        self.metric.add(number_of_files_read = len_read_files)
+        if len_read_files > 1:
             merged_data = reduce(
                 lambda left, right: pd.merge(
                     left, right, on=["Country Name", "year"], how="outer"
@@ -28,3 +30,5 @@ class GenericMergeLoader(BaseLoaderClass):
             merged_data = dataset[0].sort_values(by=["Country Name", "year"])
 
         self.write("gti", merged_data)
+        self.metric.add(number_of_written_files = 1)
+        self.metric.add(operations = ["concatenation", "sorting"])

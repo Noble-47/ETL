@@ -10,10 +10,15 @@ class GTILoader(BaseLoaderClass):
     def load(self):
 
         dataset = self.fetch()
-
-        if len(dataset) > 1:
+        len_read_files = len(dataset)
+        self.metric.add(number_of_files_read = len_read_files)
+        if len_read_files > 1:
             merged_data = pd.concat(dataset)
         else:
             merged_data = dataset[0]
 
+        merged_data = merged_data.sort(by = ["Country Name", "year"])
+
         self.write("gti", merged_data)
+        self.metric.add(operations = ["merge", "sorting"])
+        self.metric.add(number_of_files_written = 1)

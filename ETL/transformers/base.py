@@ -26,13 +26,19 @@ class BaseTransformClass(abc.ABC, IOMixin):
     default_data_dir = ""
     default_save_dir = ""
 
-    def __init__(self, data_dir=None, save_dir=None, save_file_type="excel"):
+    def __init__(self, data_dir=None, save_dir=None, save_file_type="excel", metric_class=Metric):
         self.name = self.__class__.name or self.__class__.__name__
         self.logger = logging.getLogger(f"ETL.Transform.{self.name}")
         #self.extension_reader = {".xlsx": pd.read_excel, ".csv": pd.read_csv}
         #self.extension_and_writer = {"excel" : ("xlsx", pd.DataFrame.to_excel), "csv" : ("csv", pd.DataFrame.to_csv)}
         self.save_file_type = save_file_type
         self.setup_directories(data_dir, save_dir)
+        self.setup_metric_componenet(metric_class)
+
+    def setup_metric_componenet(self, metric_class):
+        self.metric = metric_class(self.name)
+        self.metric.add(data_directory = self.data_dir)
+        self.metric.add(save_directory = self.save_dir)
 
     @abc.abstractmethod
     def transform(self, data_dict):
@@ -65,9 +71,10 @@ class BaseTransformClass(abc.ABC, IOMixin):
         for fn in files:
             name = fn.name.lower().split(".")[0]
             datasets.append({"name": name, "data": self.read(fn)})
+        self.metric.add(number_of_files_read = len(datasets.keys()))
         return datasets
 
-    def run_transformation(self, workers=None, write=True):
+    def run_transformation(self, workers=None):
         """
         Run the transform method of the given transformation class concurrently
         in a multi-core process using the specified number of `workers`.
@@ -78,16 +85,11 @@ class BaseTransformClass(abc.ABC, IOMixin):
         cpu_count = multiprocessing.cpu_count()
         workers = workers if workers is not None else cpu_count
         self.logger.info(f"Transformation Process: Using {workers} workers")
-        # with multiprocessing.Pool(processes=workers) as pool:
-        #   transformed_data = pool.imap(self.transform, self.get_dataset())
-        #transformed_data = progress_imap(
-        #    self.transform, self.fetch_data(), n_cpu=workers
-        #)
         progress_imap(
             self.transform, self.fetch_data(), n_cpu=workers
         )
-
-
+        saved_files = len([f for f in self.save_dir.iter_dir()])
+        self.metric.add(number_of_files_written = saved_files)
 
     def __str__(self):
         return f"{self.name} Transformer"
