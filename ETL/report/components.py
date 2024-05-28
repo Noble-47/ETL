@@ -1,62 +1,76 @@
-from Report.parser import TextParser, MarkdownParser, JsonParser, ConsoleStreamParser
+from report.parsers import *
 
 import json
 
+
 class Report:
 
-    def generate_text_report(report, textfile, mode='w'):
-        report_obj = TextParser(report)
-        with open(textfile, mode) as txt:
-            txt.write(report_obj.emit())
-        print(f"Generated Text Report: written to {textfile}")
-    
-    def generate_markdown_report(report, mdfile, mode='w'):
-        report_obj = MarkdownParser(report)
-        with open(mdfile, mode) as md:
-            md.write(report_obj.emit())
-        print(f"Generated Markdown Report: written to {mdfile}")
-    
-    def generate_json_report(report, jsonfile, mode='w'):
-        report_obj = JsonParser(report)
-        with open(jsonfile, mode):
-            json.dump(report_obj.emit())
-        print(f"Generated Json Report: written to {jsonfile}")
-    
-    def generate_csv_report(report, csvfile, mode='w'):
-        report_obj = CSVParser(report)
-        with open(csvfile, mode) as csv:
-            csv.write(report_obj.emit())
-        print(f"Generated CSV Report: written to {csvfile}")
-    
-    def generate_yaml_report(report, yamlfile, mode='w'):
-        report_obj = YAMLParser(report)
-        with open(yamlfile, mode) as yml:
-            yml.write(report_obj.emit())
-        print(f"Generated YAML Report: written to {yamlfile}")
-    
-    def generate_xml_report(report, xmlfile, mode='w'):
-        report_obj = XMLParser(report)
-        with open(xmlfile, mode) as xml:
-            xml.write(report_obj.emit())
-        print(f"Generated XML Report: written to {xmlfile}")
-    
-    def console_display_report(report):
-        report_obj = ConsoleStreamParser(report)
-        print(report_obj.emit())
-    
+    def __init__(self):
+        self.processes = []
+
+    def add_process_metric(self, process_metric):
+        self.processes.append(process_metric)
+
+    def as_text(self):
+        return TextParser(self.report)
+
+    def as_markdown(self):
+        return MarkdownParser(self.report)
+
+    def as_json(self):
+        return JsonParser(self.report)
+
+    def as_csv(self):
+        return CSVParser(self.report)
+
+    def as_yaml(self):
+        return YAMLParser(self.report)
+
+    def as_xml(self):
+        return XMLParser(self.report)
+
+    @property
+    def report(self):
+        return {"processes": self.processes}
+
+
+class ProcessMetricFactory:
+
+    def __call__(self, process_name):
+        return ProcessMetric(process_name)
+
+
+class ProcessMetric:
+
+    def __init__(self, process_name):
+        self.name = process_name
+        self.objects = list()
+
+    def add(self, obj_metric):
+        self.objects.append(obj_metric)
+
+    def emit(self):
+        return {"process": self.name, "objects": self.objects}
+
+
+# def __call__(self, process_name):
+#     return ProcessMetric(process_name)
+
 
 class Metric:
 
     def __init__(self, name):
-        self.metric = dict()
+        self.metrics = dict()
         self.name = name
 
     def add(self, **component):
-        self.metric.update(component)
-        
+        self.metrics.update(component)
 
     def emit(self):
-        return {
-            "name" : self.name,
-            "metrics" : self.metrics
-        }
+        return {"name": self.name, "metrics": self.metrics}
+
+    def __repr__(self):
+        return "Metric <name=self.name>"
+
+    def __str__(self):
+        return self.emit()

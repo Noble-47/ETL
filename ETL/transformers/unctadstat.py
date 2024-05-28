@@ -3,6 +3,7 @@ from transformers.base import BaseTransformClass
 from functools import reduce
 from pathlib import Path
 
+
 class UnctadStatTransformer(BaseTransformClass):
 
     name = "unctadstat"

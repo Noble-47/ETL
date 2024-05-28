@@ -82,4 +82,3 @@ class UnctadStatExtractor(BaseExtractor):
     def run(self):
         super().run()
         self.temp_dir.rmdir()
-

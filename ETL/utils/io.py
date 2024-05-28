@@ -3,22 +3,26 @@ from pandas import DataFrame
 from pathlib import Path
 import os
 
+
 class IOMixin:
 
     extension_reader = {".xlsx": read_excel, ".csv": read_csv}
-    extension_and_writer = {"excel" : ("xlsx", DataFrame.to_excel), "csv" : ("csv", DataFrame.to_csv)}
+    extension_and_writer = {
+        "excel": ("xlsx", DataFrame.to_excel),
+        "csv": ("csv", DataFrame.to_csv),
+    }
 
     def setup_data_dir(self, data_dir):
         data_dir = data_dir or self.default_data_dir
         self.data_dir = data_dir if isinstance(data_dir, Path) else Path(data_dir)
         # check if program have write permission
-     #   if not os.access(data_dir, mode=os.W_OK):
-     #       self.logger.critical(
-     #           f"Permission Error: Do not have permission to write to {self.data_dir}"
-     #       )
-     #       # Raise permission error
-     #       raise Exception
 
+    #   if not os.access(data_dir, mode=os.W_OK):
+    #       self.logger.critical(
+    #           f"Permission Error: Do not have permission to write to {self.data_dir}"
+    #       )
+    #       # Raise permission error
+    #       raise Exception
 
     def setup_save_dir(self, save_dir):
         save_dir = save_dir or self.default_save_dir
@@ -43,11 +47,13 @@ class IOMixin:
             files = [f for f in self.data_dir.iterdir() if f.is_file()]
         except Exception as e:
             self.logger.exception(
-                    "Encountered an error trying to read %s", self.data_dir
-                )
+                "Encountered an error trying to read %s", self.data_dir
+            )
             raise e
         else:
-            self.logger.info("%d files found in %s filder", len(files), self.data_dir.name)
+            self.logger.info(
+                "%d files found in %s filder", len(files), self.data_dir.name
+            )
 
         datasets = [self.read(f) for f in files]
         return datasets
@@ -56,5 +62,3 @@ class IOMixin:
         ext = fn.suffix
         reader = self.extension_reader.get(ext)
         return reader(fn)
-
-                                               

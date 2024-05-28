@@ -46,12 +46,14 @@ class BaseExtractor(abc.ABC, IOMixin):
         self.name = self.__class__.name or self.__class__.__name__
         self.logger = logging.getLogger(f"ETL.Extractor.{self.name}")
         self.setup_save_dir(save_dir)
-        self.setup_metric(metric_class)
+        self.setup_metric_component(metric_class)
+        self.progress_bar = None
+        self.download_tasks = len([link for link in self.get_links()])
 
-    def setup_metric_componenet(self, metric_cls):
+    def setup_metric_component(self, metric_cls):
         self.metric = metric_cls(self.name)
-        self.metric.add(source = self.domain)
-        self.metric.add(save_directory = self.savedir)
+        self.metric.add(source=self.domain)
+        self.metric.add(save_directory=str(self.save_dir))
 
     @abc.abstractmethod
     def get_links(self):
@@ -79,6 +81,7 @@ class BaseExtractor(abc.ABC, IOMixin):
             if link.encoding:
                 content = content.decode(encoding)
             self.logger.info(f"Decoding Complete - {link.name}, format : {encoding}")
+            self.progress_bar.update(1)
             return Download(content=content, name=link.name)
 
     async def start_request(self):
@@ -108,15 +111,18 @@ class BaseExtractor(abc.ABC, IOMixin):
             await f.write(download.content)
             self.logger.info(f"Write Operation Complete : {download.name} to {path}")
 
-    def extract(self):
+    def extract(self, pbar=None):
         downloads = []
+        if pbar:
+            self.progress_bar = pbar
         for task in asyncio.run(self.start_request()):
-            result = task.result
+            result = task.result()
             if result:
-                downloads.append(task)
-        self.metric.add(number_of_files_downloaded = len(downloads))
+                downloads.append(result)
+        self.metric.add(number_of_files_downloaded=len(downloads))
         self.downloads = downloads
         asyncio.run(self.write())
+        return self.metric
 
     def __repr__(self):
         return f"{self.__class__.__name__}<{self.save_dir or self.domain}>"

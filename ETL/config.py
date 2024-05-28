@@ -1,4 +1,5 @@
 """Reads In All required Configuration files"""
+
 import logging.config
 import logging
 import pathlib
@@ -10,9 +11,8 @@ def load_logging_config():
     config_file = pathlib.Path("configs/log.json")
     with open(config_file) as f:
         config = json.load(f)
-    
-    return config
 
+    return config
 
 
 def setup_logging():
@@ -23,8 +23,10 @@ def setup_logging():
         queue_handler.listener.start()
         atexit.register(queue_handler.listener.stop)
 
+
 setup_logging()
 logger = logging.getLogger("somelogger")
+
 
 def main():
     logger.debug("debug message")
@@ -40,7 +42,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
-
-

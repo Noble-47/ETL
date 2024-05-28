@@ -2,9 +2,10 @@ import datetime as dt
 import logging
 import json
 
+
 class JsonFormatter(logging.Formatter):
 
-    def __init__(self, *, fmt_keys = None):
+    def __init__(self, *, fmt_keys=None):
         super().__init__()
         self.fmt_keys = fmt_keys if fmt_keys is not None else dict()
 
@@ -14,18 +15,17 @@ class JsonFormatter(logging.Formatter):
 
     def _prepare_log_dict(self, record):
         fields = {
-                "message" : record.getMessage(),
-                "timestamp" : dt.datetime.fromtimestamp(
-                        record.created,
-                        tz = dt.timezone.utc
-                    ).isoformat()
-            }
+            "message": record.getMessage(),
+            "timestamp": dt.datetime.fromtimestamp(
+                record.created, tz=dt.timezone.utc
+            ).isoformat(),
+        }
 
         if record.exc_info is not None:
-            fields['exc_info'] = self.formatException(record.exc_info)
+            fields["exc_info"] = self.formatException(record.exc_info)
 
         if record.stack_info is not None:
-            fields['stack_info'] = self.formatStack(record.stack_info)
+            fields["stack_info"] = self.formatStack(record.stack_info)
 
         message = dict()
 
@@ -38,4 +38,3 @@ class JsonFormatter(logging.Formatter):
         message.update(fields)
 
         return message
-

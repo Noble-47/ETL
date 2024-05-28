@@ -7,7 +7,7 @@
                 "datefmt" : "%Y-%m-%d %H:%M:%s %p"
                 },
             "json" : {
-                    "()" : "utils.JsonFormatter",
+                    "()" : "utils.log.JsonFormatter",
                     "fmt_keys" : {
                         "level" : "levelname",
                         "message" : "message",
@@ -26,6 +26,12 @@
                 "formatter" : "json",
                 "level" : "DEBUG",
 		"filename" : "logs/info.log"
+            },
+
+ 	"test" : {
+                "class" : "logging.StreamHandler",
+                "formatter" : "simple",
+                "level" : "DEBUG"
             },
 
         "error" : {
