@@ -31,7 +31,7 @@ class GTIExtractor(BaseExtractor):
     domain = "www.visionofhumanity.org"
 
     def __init__(self, upload=None, start=None, end=None, save_dir=None):
-        self.upload = str(upload) or UPLOAD_YEAR
+        self.upload = upload or UPLOAD_YEAR
         self.start = start or START_YEAR
         self.end = end or END_YEAR
         self._root_url = ROOT_URL
