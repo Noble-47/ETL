@@ -423,3 +423,323 @@ metric = loader.load_data()
 print(metric.summary())
 ```
 
+# Reporting Component of ETL Project
+
+## Overview
+
+The reporting component is a crucial part of the ETL (Extract, Transform, Load) process, responsible for generating summaries and detailed reports of the various ETL operations. Each component of the ETL pipeline (Extraction, Transformation, Loading) has a metric property that tracks and stores metrics, which are then used to create comprehensive reports.
+
+## Metric Classes
+
+### `Metric`
+
+The `Metric` class is designed to store metrics for an individual component instance.
+
+#### Attributes
+
+- `metrics` (dict): Dictionary to store metrics.
+- `name` (str): Name of the metric.
+
+#### Methods
+
+- `__init__(self, name)`: Initializes the metric with a name.
+- `add(self, **component)`: Adds metrics to the metric object.
+- `emit(self)`: Returns the metric content as a dictionary.
+- `__repr__(self)`: Returns a string representation of the metric.
+- `__str__(self)`: Returns the emitted metric content as a string.
+
+### Example Usage
+
+```python
+metric = Metric("ExampleMetric")
+metric.add(source="example.com", files_processed=10)
+print(metric.emit())
+```
+
+### `ProcessMetric`
+
+The `ProcessMetric` class stores the metrics of all instances of a particular ETL process (e.g., Extraction, Transformation, Loading).
+
+#### Attributes
+
+- `name` (str): Name of the process.
+- `objects` (list): List to store metrics of each component instance.
+
+#### Methods
+
+- `__init__(self, process_name)`: Initializes the process metric with a process name.
+- `add(self, obj_metric)`: Adds an object metric to the process metric.
+- `emit(self)`: Returns the process metrics as a dictionary.
+
+### Example Usage
+
+```python
+process_metric = ProcessMetric("Extraction")
+process_metric.add(metric)
+print(process_metric.emit())
+```
+
+### `Report`
+
+The `Report` class collects `ProcessMetric` objects and generates a comprehensive report.
+
+#### Attributes
+
+- `processes` (list): List to store process metrics.
+
+#### Methods
+
+- `__init__(self)`: Initializes the report.
+- `add_process_metric(self, process_metric)`: Adds a process metric to the report.
+- `as_text(self)`: Returns the report as text using `TextParser`.
+- `as_markdown(self)`: Returns the report as markdown using `MarkdownParser`.
+- `as_json(self)`: Returns the report as JSON using `JsonParser`.
+- `as_csv(self)`: Returns the report as CSV using `CSVParser`.
+- `as_yaml(self)`: Returns the report as YAML using `YAMLParser`.
+- `as_xml(self)`: Returns the report as XML using `XMLParser`.
+- `report(self)`: Property that returns the report as a dictionary.
+
+### Example Usage
+
+```python
+report = Report()
+report.add_process_metric(process_metric)
+report.as_text().display()
+```
+
+## Parser Classes
+
+### `BaseParser`
+
+The `BaseParser` class is an abstract base class for all parsers.
+
+#### Methods
+
+- `__init__(self, report)`: Initializes the parser with a report.
+- `parse_report(self, report)`: Abstract method to parse the report.
+- `display(self)`: Prints the parsed report.
+- `emit(self)`: Returns the parsed report.
+- `write(self, file, mode)`: Writes the parsed report to a file.
+
+### `TextParser`
+
+The `TextParser` class parses the report into a plain text format.
+
+#### Methods
+
+- `parse_report(self, report)`: Parses the report into plain text.
+
+### Example Usage
+
+```python
+text_parser = TextParser(report.report)
+text_parser.display()
+```
+
+### `MarkdownParser`
+
+The `MarkdownParser` class parses the report into a markdown format.
+
+#### Methods
+
+- `parse_report(self, report)`: Parses the report into markdown.
+
+### Example Usage
+
+```python
+markdown_parser = MarkdownParser(report.report)
+markdown_parser.display()
+```
+
+## Example Report
+
+Here is an example of what a raw report might look like:
+
+```python
+report = Report()
+extraction_metric = Metric("vision_of_humanity")
+extraction_metric.add(source="www.visionofhumanity.org", save_directory="data/gti/extracted", start_year=2011, end_year=2023, upload_year="2024", number_of_files_downloaded=12)
+extraction_process = ProcessMetric("Extraction")
+extraction_process.add(extraction_metric)
+
+transformation_metric = Metric("GTITransformer")
+transformation_metric.add(data_directory="data/gti/extracted", save_directory="data/gti/transformed", number_of_files_read=12, number_of_files_written=12)
+transformation_process = ProcessMetric("Transformation")
+transformation_process.add(transformation_metric)
+
+loading_metric_1 = Metric("GTI Merge Loader")
+loading_metric_1.add(save_directory="data/loaded", write_directory="data/gti/transformed", number_of_files_read=12, operations=["merge", "sorting"], number_of_files_written=1)
+loading_metric_2 = Metric("Generic Merge Loader")
+loading_metric_2.add(save_directory="data/loaded", write_directory="data/loaded", number_of_files_read=1, number_of_written_files=1, operations=["concatenation", "sorting"])
+loading_process = ProcessMetric("Loading")
+loading_process.add(loading_metric_1)
+loading_process.add(loading_metric_2)
+
+report.add_process_metric(extraction_process)
+report.add_process_metric(transformation_process)
+report.add_process_metric(loading_process)
+
+print(report.as_text())
+```
+
+# The Pipeline 
+
+## Overview
+
+The `Pipeline` class is the central component of the ETL (Extract, Transform, Load) process. It orchestrates the sequence of operations by bringing together extractors, transformers, and loaders, managing their execution, and generating comprehensive reports on the process.
+
+## Class Definition
+
+### `Pipeline`
+
+The `Pipeline` class coordinates the ETL workflow by managing the addition of components, running each phase of the process, and compiling metrics into a report.
+
+#### Attributes
+
+- `extractors` (list): A list to store extractor objects.
+- `transformers` (list): A list to store transformer objects.
+- `loaders` (list): A list to store loader objects.
+- `report` (Report): An instance of the `Report` class to collect metrics.
+- `process_metric_factory` (ProcessMetricFactory): A factory to create process metrics.
+- `logger` (Logger): Logger for logging pipeline activities.
+
+#### Methods
+
+- `__init__(self)`: Initializes the pipeline, sets up logging, and prepares the report and process metric factory.
+- `setup_logging(self)`: Configures logging based on a configuration file.
+- `create_object(cls_)`: A helper method to create objects from class and parameters.
+- `add(self, **kwargs)`: Adds extractors, transformers, or loaders to the pipeline.
+- `add_extractor(self, extractor)`: Adds a single extractor to the pipeline.
+- `add_transformer(self, transformer)`: Adds a single transformer to the pipeline.
+- `add_loaders(self, loaders)`: Adds a single loader to the pipeline.
+- `clear(self)`: Clears all components from the pipeline.
+- `outline(self)`: Returns a string outlining the current configuration of the pipeline.
+- `run_extractors(self)`: Runs all extractors and collects their metrics.
+- `run_transformers(self)`: Runs all transformers and collects their metrics.
+- `run_loaders(self)`: Runs all loaders and collects their metrics.
+- `run(self)`: Runs the entire ETL process in sequence (extraction, transformation, loading) and returns the report.
+
+### Example Usage
+
+```python
+from extractors.unctadstat import UnctadStatExtractor
+from extractors.gti import GTIExtractor
+from transformers.unctadstat import UnctadStatTransformer
+from transformers.gti import GTITransformer
+from loaders.unctadstat_loader import UnctadStatLoader
+from loaders.generic import GenericMergeLoader
+from loaders.gti_loader import GTILoader
+from pipeline import Pipeline
+
+pipeline = Pipeline()
+
+pipeline.add(
+    extractors=[
+        GTIExtractor(start=2011, end=2015, upload="2024"),
+        UnctadStatExtractor(variables=["US.PCI"])
+    ],
+    transformers=[
+        GTITransformer(),
+        UnctadStatTransformer()
+    ],
+    loaders=[
+        UnctadStatLoader(),
+        GTILoader(),
+        GenericMergeLoader()
+    ]
+)
+
+print(pipeline.outline())
+
+report = pipeline.run()
+```
+
+### Result
+
+```
+ETL Pipeline
+├── Extractors
+│   ├── vision_of_humanity
+│   ├── unctadstat
+├── Transformers
+│   ├── GTITransformer
+│   ├── unctadstat
+└── Loaders
+    ├── UnctadStat Loader
+    ├── GTI Merge Loader
+    ├── Generic Merge Loader
+
+Extraction: 7it [00:10,  1.55s/it]
+Transformers:
+    GTITransformer
+DONE: 100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 4/4 [00:00<00:00,  4.89it/s]
+    unctadstat
+DONE: 100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 1/1 [00:16<00:00, 16.23s/it]
+Loaders
+    ---> UnctadStat Loader (running...)
+    ---> GTI Merge Loader (running...)
+    ---> Generic Merge Loader (running...)
+
+>>> report.as_yaml().display()
+processes:
+- objects:
+  - metrics:
+      end_year: 2015
+      number_of_files_downloaded: 4
+      save_directory: data/gti/extracted
+      source: www.visionofhumanity.org
+      start_year: 2011
+      upload_year: '2024'
+    name: vision_of_humanity
+  - metrics:
+      number_of_files_downloaded: 1
+      save_directory: data/unctadstat/extracted
+      source: https://unctadstat.unctad.org
+    name: unctadstat
+  process: Extraction
+- objects:
+  - metrics:
+      data_directory: data/gti/extracted
+      number_of_files_read: 4
+      number_of_files_written: 4
+      save_directory: data/gti/transformed
+    name: GTITransformer
+  - metrics:
+      data_directory: data/unctadstat/extracted
+      number_of_files_read: 1
+      number_of_files_written: 1
+      save_directory: data/unctadstat/transformed
+    name: unctadstat
+  process: Transformation
+- objects:
+  - metrics:
+      number_of_files_read: 1
+      number_of_written_files: 1
+      operations:
+      - concatenation
+      - sorting
+      save_directory: data/loaded
+      write_directory: data/unctadstat/transformed
+    name: UnctadStat Loader
+  - metrics:
+      number_of_files_read: 4
+      number_of_files_written: 1
+      operations:
+      - merge
+      - sorting
+      save_directory: data/loaded
+      write_directory: data/gti/transformed
+    name: GTI Merge Loader
+  - metrics:
+      number_of_files_read: 1
+      number_of_written_files: 1
+      operations:
+      - concatenation
+      - sorting
+      save_directory: data/loaded
+      write_directory: data/loaded
+    name: Generic Merge Loader
+  process: Loading
+```
+
+The `Pipeline` class integrates the ETL components (extractors, transformers, loaders) and manages their execution in a coordinated manner. By collecting metrics at each stage and compiling them into a comprehensive report, the pipeline provides valuable insights into the ETL process, facilitating monitoring, analysis, and optimization.
